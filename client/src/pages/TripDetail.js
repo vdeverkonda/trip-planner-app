@@ -11,7 +11,9 @@ import {
   MessageCircle,
   Settings,
   ArrowLeft,
-  Plus
+  Plus,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -22,6 +24,7 @@ const TripDetail = () => {
   const { socket } = useSocket();
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -48,6 +51,24 @@ const TripDetail = () => {
       navigate('/dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteTrip = async () => {
+    if (!window.confirm(`Are you sure you want to delete "${trip.title}"? This action cannot be undone and will remove all associated data including itinerary, messages, and budget information.`)) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      await axios.delete(`/api/trips/${trip._id}`);
+      toast.success('Trip deleted successfully');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete trip');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -279,10 +300,30 @@ const TripDetail = () => {
             </p>
           </div>
           
-          <button className="btn-outline flex items-center">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </button>
+          <div className="flex items-center space-x-3">
+            <button className="btn-outline flex items-center">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Trip
+            </button>
+            
+            <button
+              onClick={handleDeleteTrip}
+              disabled={deleteLoading}
+              className="btn-outline border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 flex items-center"
+            >
+              {deleteLoading ? (
+                <>
+                  <div className="spinner mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Trip
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

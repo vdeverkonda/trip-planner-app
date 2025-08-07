@@ -10,7 +10,9 @@ import {
   DollarSign,
   Clock,
   Star,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -18,6 +20,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(null);
   const [stats, setStats] = useState({
     totalTrips: 0,
     upcomingTrips: 0,
@@ -52,6 +55,39 @@ const Dashboard = () => {
       toast.error('Failed to load trips');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteTrip = async (tripId, tripTitle) => {
+    if (!window.confirm(`Are you sure you want to delete "${tripTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeleteLoading(tripId);
+    try {
+      await axios.delete(`/api/trips/${tripId}`);
+      toast.success('Trip deleted successfully');
+      // Remove the trip from the local state
+      setTrips(prevTrips => prevTrips.filter(trip => trip._id !== tripId));
+      // Recalculate stats
+      const updatedTrips = trips.filter(trip => trip._id !== tripId);
+      const now = new Date();
+      const upcoming = updatedTrips.filter(trip => 
+        new Date(trip.dates.startDate) > now && trip.status !== 'cancelled'
+      );
+      const completed = updatedTrips.filter(trip => trip.status === 'completed');
+      
+      setStats({
+        totalTrips: updatedTrips.length,
+        upcomingTrips: upcoming.length,
+        completedTrips: completed.length,
+        totalBudget: updatedTrips.reduce((sum, trip) => sum + (trip.budget?.totalBudget?.amount || 0), 0)
+      });
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete trip');
+    } finally {
+      setDeleteLoading(null);
     }
   };
 
@@ -223,55 +259,78 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.slice(0, 6).map((trip) => (
-              <Link
+              <div
                 key={trip._id}
-                to={`/trips/${trip._id}`}
-                className="card hover:shadow-lg transition-shadow duration-200"
+                className="card hover:shadow-lg transition-shadow duration-200 relative group"
               >
                 <div className="card-content">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
-                      {trip.title}
-                    </h3>
-                    <span className={`badge ${getStatusColor(trip.status)}`}>
-                      {getStatusText(trip.status)}
-                    </span>
+                  {/* Trip Actions Dropdown */}
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteTrip(trip._id, trip.title);
+                        }}
+                        disabled={deleteLoading === trip._id}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete trip"
+                      >
+                        {deleteLoading === trip._id ? (
+                          <div className="spinner"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">
-                        {trip.startLocation.name} → {trip.destination.name}
+
+                  <Link to={`/trips/${trip._id}`} className="block">
+                    <div className="flex items-start justify-between mb-3 pr-8">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        {trip.title}
+                      </h3>
+                      <span className={`badge ${getStatusColor(trip.status)}`}>
+                        {getStatusText(trip.status)}
                       </span>
                     </div>
                     
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>
-                        {formatDate(trip.dates.startDate)} - {formatDate(trip.dates.endDate)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>{trip.members.length} member{trip.members.length !== 1 ? 's' : ''}</span>
-                    </div>
-                    
-                    {trip.budget && (
+                    <div className="space-y-2 mb-4">
                       <div className="flex items-center text-sm text-gray-600">
-                        <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span>${trip.budget.totalBudget?.amount?.toLocaleString() || 0}</span>
+                        <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span className="truncate">
+                          {trip.startLocation.name} → {trip.destination.name}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span>{trip.duration} day{trip.duration !== 1 ? 's' : ''}</span>
-                  </div>
+                      
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span>
+                          {formatDate(trip.dates.startDate)} - {formatDate(trip.dates.endDate)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <span>{trip.members.length} member{trip.members.length !== 1 ? 's' : ''}</span>
+                      </div>
+                      
+                      {trip.budget && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <span>${trip.budget.totalBudget?.amount?.toLocaleString() || 0}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>{trip.duration} day{trip.duration !== 1 ? 's' : ''}</span>
+                    </div>
+                  </Link>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
