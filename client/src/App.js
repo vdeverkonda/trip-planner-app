@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import TripCreate from './pages/TripCreate';
 import TripDetail from './pages/TripDetail';
+import TripEdit from './pages/TripEdit';
 import Profile from './pages/Profile';
 import './index.css';
 
@@ -37,6 +38,11 @@ function App() {
                 <Route path="/trips/create" element={
                   <ProtectedRoute>
                     <TripCreate />
+                  </ProtectedRoute>
+                } />
+                <Route path="/trips/:id/edit" element={
+                  <ProtectedRoute>
+                    <TripEdit />
                   </ProtectedRoute>
                 } />
                 <Route path="/trips/:id" element={

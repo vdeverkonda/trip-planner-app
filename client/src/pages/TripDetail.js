@@ -16,6 +16,7 @@ import {
   Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ItineraryBuilder from '../components/ItineraryBuilder';
 
 const TripDetail = () => {
   const { id } = useParams();
@@ -174,62 +175,10 @@ const TripDetail = () => {
   );
 
   const renderItineraryTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold">Trip Itinerary</h3>
-        <button className="btn-primary flex items-center">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Activity
-        </button>
-      </div>
-      
-      {trip.itinerary && trip.itinerary.length > 0 ? (
-        <div className="space-y-4">
-          {trip.itinerary.map((day, index) => (
-            <div key={index} className="card">
-              <div className="card-header">
-                <h4 className="card-title">Day {index + 1}</h4>
-                <p className="card-description">{formatDate(day.date)}</p>
-              </div>
-              <div className="card-content">
-                {day.activities.length > 0 ? (
-                  <div className="space-y-3">
-                    {day.activities.map((activity, actIndex) => (
-                      <div key={actIndex} className="flex items-start p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <h5 className="font-medium">{activity.name}</h5>
-                          <p className="text-sm text-gray-600">{activity.description}</p>
-                          {activity.time && (
-                            <p className="text-sm text-gray-500 mt-1">{activity.time}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No activities planned for this day</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="card">
-          <div className="card-content text-center py-12">
-            <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No itinerary yet
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Start planning your trip by adding activities and places to visit
-            </p>
-            <button className="btn-primary">
-              Generate Itinerary
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    <ItineraryBuilder 
+      trip={trip} 
+      onUpdate={fetchTripDetails}
+    />
   );
 
   const renderChatTab = () => (
@@ -301,7 +250,10 @@ const TripDetail = () => {
           </div>
           
           <div className="flex items-center space-x-3">
-            <button className="btn-outline flex items-center">
+            <button 
+              onClick={() => navigate(`/trips/${trip._id}/edit`)}
+              className="btn-outline flex items-center"
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Trip
             </button>

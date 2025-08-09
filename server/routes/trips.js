@@ -3,6 +3,7 @@ const Trip = require('../models/Trip');
 const { Budget } = require('../models/Budget');
 const auth = require('../middleware/auth');
 const placesService = require('../services/placesService');
+const aiItineraryService = require('../services/aiItineraryService');
 
 const router = express.Router();
 
@@ -272,6 +273,92 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('Trip deletion error:', error);
     res.status(500).json({ message: 'Server error deleting trip' });
+  }
+});
+
+// Update trip itinerary
+router.put('/:id/itinerary', auth, async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id);
+    
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+
+    // Check if user is a member
+    const isMember = trip.members.some(member => 
+      member.user.toString() === req.userId
+    );
+
+    if (!isMember && trip.organizer.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { itinerary } = req.body;
+    
+    // Validate itinerary structure
+    if (!Array.isArray(itinerary)) {
+      return res.status(400).json({ message: 'Invalid itinerary format' });
+    }
+
+    // Update the trip with new itinerary
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      req.params.id,
+      { itinerary },
+      { new: true, runValidators: true }
+    )
+    .populate('organizer', 'name email')
+    .populate('members.user', 'name email');
+
+    res.json({
+      message: 'Itinerary updated successfully',
+      trip: updatedTrip
+    });
+  } catch (error) {
+    console.error('Itinerary update error:', error);
+    res.status(500).json({ message: 'Server error updating itinerary' });
+  }
+});
+
+// Generate AI itinerary using Gemini 2.5
+router.post('/:id/ai-itinerary', auth, async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id)
+      .populate('organizer', 'name email')
+      .populate('members', 'name email');
+
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+
+    // Check if user is trip member or organizer
+    const isMember = trip.members.some(member => 
+      member._id.toString() === req.user.userId
+    );
+    const isOrganizer = trip.organizer._id.toString() === req.user.userId;
+
+    if (!isMember && !isOrganizer) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Generate AI itinerary
+    const aiItinerary = await aiItineraryService.generateItinerary(trip);
+    
+    // Update trip with AI-generated itinerary
+    trip.itinerary = aiItinerary;
+    await trip.save();
+
+    res.json({
+      message: 'AI itinerary generated successfully',
+      itinerary: aiItinerary
+    });
+
+  } catch (error) {
+    console.error('AI itinerary generation error:', error);
+    res.status(500).json({ 
+      message: 'Failed to generate AI itinerary',
+      error: error.message 
+    });
   }
 });
 

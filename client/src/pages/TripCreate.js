@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import "react-datepicker/dist/react-datepicker.css";
+import LocationAutocomplete from '../components/LocationAutocomplete';
 
 const TripCreate = () => {
   const { user } = useAuth();
@@ -40,9 +41,118 @@ const TripCreate = () => {
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
     },
     transportation: 'car',
-    groupSize: 1
+    groupSize: 1,
+    budget: {
+      range: 'moderate',
+      total: 0,
+      currency: 'USD'
+    },
+    preferences: {
+      travelStyle: [],
+      interests: [],
+      pace: 'moderate',
+      accommodation: 'hotel',
+      budgetPriority: 'balanced',
+      specialRequests: ''
+    }
   });
   const [errors, setErrors] = useState({});
+
+  const travelStyleOptions = [
+    {
+      id: 'culture_history',
+      title: 'Culture & History',
+      description: 'Museums, historical sites, walking tours, local traditions',
+      icon: '🏛️'
+    },
+    {
+      id: 'foodie',
+      title: 'Foodie Experience',
+      description: 'Culinary tours, famous restaurants, cooking classes, local markets',
+      icon: '🍽️'
+    },
+    {
+      id: 'adventure_outdoors',
+      title: 'Adventure & Outdoors',
+      description: 'Hiking, kayaking, zip-lining, national parks, extreme sports',
+      icon: '🏔️'
+    },
+    {
+      id: 'relaxation',
+      title: 'Relaxation & Wellness',
+      description: 'Spas, beaches, scenic drives, quiet cafes, meditation retreats',
+      icon: '🧘'
+    },
+    {
+      id: 'family_friendly',
+      title: 'Family-Friendly',
+      description: 'Zoos, amusement parks, kid-friendly museums, interactive experiences',
+      icon: '👨‍👩‍👧‍👦'
+    },
+    {
+      id: 'nightlife_entertainment',
+      title: 'Nightlife & Entertainment',
+      description: 'Bars, clubs, live music, theater shows, festivals',
+      icon: '🎭'
+    },
+    {
+      id: 'shopping_local',
+      title: 'Shopping & Local Life',
+      description: 'Local markets, boutiques, artisan shops, neighborhood exploration',
+      icon: '🛍️'
+    },
+    {
+      id: 'photography_scenic',
+      title: 'Photography & Scenic',
+      description: 'Instagram spots, scenic viewpoints, sunrise/sunset locations',
+      icon: '📸'
+    }
+  ];
+
+  const budgetRanges = [
+    {
+      id: 'budget',
+      title: 'Budget-Friendly',
+      description: 'Free activities, local eats, public transport',
+      range: '$0-50/day',
+      icon: '💰'
+    },
+    {
+      id: 'moderate',
+      title: 'Moderate',
+      description: 'Mix of paid attractions, mid-range dining',
+      range: '$50-150/day',
+      icon: '💳'
+    },
+    {
+      id: 'luxury',
+      title: 'Luxury Experience',
+      description: 'Premium experiences, fine dining, private tours',
+      range: '$150+/day',
+      icon: '💎'
+    }
+  ];
+
+  const paceOptions = [
+    {
+      id: 'relaxed',
+      title: 'Relaxed Pace',
+      description: 'Lots of downtime, 1-2 activities per day',
+      icon: '🐌'
+    },
+    {
+      id: 'moderate',
+      title: 'Moderate Pace',
+      description: 'Balanced schedule, 3-4 activities per day',
+      icon: '🚶'
+    },
+    {
+      id: 'packed',
+      title: 'Packed Schedule',
+      description: 'See everything, 5+ activities per day',
+      icon: '🏃'
+    }
+  ];
 
   const transportationOptions = [
     { value: 'car', label: 'Car', icon: Car },
@@ -66,14 +176,12 @@ const TripCreate = () => {
     }
   };
 
-  const handleLocationChange = (type, value) => {
+  const handleLocationChange = (type, locationData) => {
+    console.log('Location change:', type, locationData); // Debug log
+    
     setFormData(prev => ({
       ...prev,
-      [type]: {
-        name: value,
-        address: value,
-        coordinates: { lat: 0, lng: 0 } // In real app, use geocoding
-      }
+      [type]: locationData
     }));
     
     if (errors[type]) {
@@ -192,13 +300,11 @@ const TripCreate = () => {
             <MapPin className="h-4 w-4 inline mr-1" />
             Starting From
           </label>
-          <input
-            id="startLocation"
-            type="text"
-            value={formData.startLocation.name}
-            onChange={(e) => handleLocationChange('startLocation', e.target.value)}
-            className={`input ${errors.startLocation ? 'border-red-500' : ''}`}
+          <LocationAutocomplete
+            value={formData.startLocation}
+            onChange={(location) => handleLocationChange('startLocation', location)}
             placeholder="Enter starting location"
+            error={errors.startLocation}
           />
           {errors.startLocation && (
             <p className="mt-1 text-sm text-red-600">{errors.startLocation}</p>
@@ -210,13 +316,11 @@ const TripCreate = () => {
             <MapPin className="h-4 w-4 inline mr-1" />
             Going To
           </label>
-          <input
-            id="destination"
-            type="text"
-            value={formData.destination.name}
-            onChange={(e) => handleLocationChange('destination', e.target.value)}
-            className={`input ${errors.destination ? 'border-red-500' : ''}`}
+          <LocationAutocomplete
+            value={formData.destination}
+            onChange={(location) => handleLocationChange('destination', location)}
             placeholder="Enter destination"
+            error={errors.destination}
           />
           {errors.destination && (
             <p className="mt-1 text-sm text-red-600">{errors.destination}</p>
@@ -317,6 +421,81 @@ const TripCreate = () => {
           You can invite members after creating the trip
         </p>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Budget
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {budgetRanges.map((option) => {
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleInputChange('budget', { ...formData.budget, range: option.id })}
+                className={`p-4 border rounded-lg text-center transition-colors ${
+                  formData.budget.range === option.id
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.title}</span>
+                <p className="text-xs text-gray-500">{option.range}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Travel Style
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {travelStyleOptions.map((option) => {
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleInputChange('preferences', { ...formData.preferences, travelStyle: [...formData.preferences.travelStyle, option.id] })}
+                className={`p-4 border rounded-lg text-center transition-colors ${
+                  formData.preferences.travelStyle.includes(option.id)
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.title}</span>
+                <p className="text-xs text-gray-500">{option.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Pace
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {paceOptions.map((option) => {
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleInputChange('preferences', { ...formData.preferences, pace: option.id })}
+                className={`p-4 border rounded-lg text-center transition-colors ${
+                  formData.preferences.pace === option.id
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.title}</span>
+                <p className="text-xs text-gray-500">{option.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 
@@ -368,6 +547,21 @@ const TripCreate = () => {
                 <span className="text-sm capitalize">
                   {formData.transportation.replace('_', ' ')}
                 </span>
+              </div>
+
+              <div className="flex items-center">
+                <span className="text-sm">Budget:</span>
+                <span className="text-sm font-medium">{formData.budget.range}</span>
+              </div>
+
+              <div className="flex items-center">
+                <span className="text-sm">Travel Style:</span>
+                <span className="text-sm font-medium">{formData.preferences.travelStyle.join(', ')}</span>
+              </div>
+
+              <div className="flex items-center">
+                <span className="text-sm">Pace:</span>
+                <span className="text-sm font-medium">{formData.preferences.pace}</span>
               </div>
             </div>
           </div>
