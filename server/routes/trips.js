@@ -320,6 +320,22 @@ router.put('/:id/itinerary', auth, async (req, res) => {
   }
 });
 
+// Get AI model information
+router.get('/ai-model-info', auth, async (req, res) => {
+  try {
+    const modelInfo = aiItineraryService.getModelInfo();
+    const availableModels = aiItineraryService.getAvailableModels();
+    
+    res.json({
+      currentModel: modelInfo,
+      availableModels: availableModels
+    });
+  } catch (error) {
+    console.error('Error getting AI model info:', error);
+    res.status(500).json({ message: 'Failed to get AI model information' });
+  }
+});
+
 // Generate AI itinerary
 router.post('/:id/ai-itinerary', auth, async (req, res) => {
   try {
@@ -341,25 +357,38 @@ router.post('/:id/ai-itinerary', auth, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Generate AI itinerary using Gemini 2.5
+    // Get user details for more personalized AI recommendations
+    const User = require('../models/User');
+    const user = await User.findById(req.userId).select('preferences name');
+    
+    // Check if AI service is available
+    const isAIAvailable = aiItineraryService.isAIAvailable();
+    
+    // Generate itinerary (AI or fallback) with user context
     const itinerary = await aiItineraryService.generateItinerary({
       trip,
-      userId: req.userId
+      userId: req.userId,
+      user: user
     });
 
-    // Update trip with AI-generated itinerary
+    // Update trip with generated itinerary
     trip.itinerary = itinerary;
     await trip.save();
 
+    const message = isAIAvailable 
+      ? 'AI itinerary generated successfully' 
+      : 'Basic itinerary generated (AI not available)';
+
     res.json({
-      message: 'AI itinerary generated successfully',
-      itinerary
+      message,
+      itinerary,
+      aiAvailable: isAIAvailable
     });
 
   } catch (error) {
-    console.error('AI itinerary generation error:', error);
+    console.error('Itinerary generation error:', error);
     res.status(500).json({ 
-      message: 'Failed to generate AI itinerary',
+      message: 'Failed to generate itinerary',
       error: error.message 
     });
   }

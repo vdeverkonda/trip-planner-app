@@ -6,6 +6,7 @@ A comprehensive trip planning application that allows users to collaborate on pl
 
 ### Core Features
 - **Trip Planning**: Create trips with start/destination locations, dates, and preferences
+- **AI-Powered Itinerary Generation**: Generate intelligent itineraries using Google Gemini 2.5 Flash Lite
 - **Personalized Recommendations**: Get place suggestions based on user preferences and group interests
 - **Collaborative Planning**: Invite friends to collaborate on trip planning
 - **Group Chat**: Real-time messaging with polls, suggestions, and voting
@@ -19,6 +20,7 @@ A comprehensive trip planning application that allows users to collaborate on pl
 - MongoDB database with Mongoose ODM
 - RESTful API with Express.js
 - React frontend with modern hooks and context
+- AI-powered itinerary generation with Google Gemini 1.5 Pro
 
 ## Tech Stack
 
@@ -29,6 +31,7 @@ A comprehensive trip planning application that allows users to collaborate on pl
 - **JWT** for authentication
 - **bcryptjs** for password hashing
 - **Google Places API** for location data
+- **Google Gemini 1.5 Pro** for AI-powered itinerary generation
 
 ### Frontend
 - **React** with React Router
@@ -53,21 +56,16 @@ A comprehensive trip planning application that allows users to collaborate on pl
    cd trip-planner-app
    ```
 
-2. **Install dependencies**
+2. **Quick Setup (Recommended)**
    ```bash
-   # Install root dependencies
-   npm install
+   # Install all dependencies
+   npm run install-all
    
-   # Install server dependencies
-   cd server
-   npm install
-   
-   # Install client dependencies
-   cd ../client
-   npm install
+   # Setup environment files
+   npm run setup
    ```
 
-3. **Environment Setup**
+3. **Manual Environment Setup (Alternative)**
    
    Create `.env` file in the `server` directory:
    ```env
@@ -78,39 +76,30 @@ A comprehensive trip planning application that allows users to collaborate on pl
    JWT_SECRET=your-super-secret-jwt-key-here
    
    # External APIs
-   GOOGLE_PLACES_API_KEY=your-google-places-api-key
+GOOGLE_PLACES_API_KEY=your-google-places-api-key
+GEMINI_API_KEY=your-gemini-api-key
+
+# AI Configuration
+GEMINI_MODEL=gemini-1.5-pro
    
    # Server Configuration
-   PORT=5000
+   PORT=5001
    CLIENT_URL=http://localhost:3000
    ```
    
    Create `.env` file in the `client` directory:
    ```env
-   REACT_APP_SERVER_URL=http://localhost:5000
+   REACT_APP_SERVER_URL=http://localhost:5001
    ```
 
 4. **Start the application**
-   
-   **Option 1: Start both servers separately**
-   ```bash
-   # Terminal 1 - Start backend server
-   cd server
-   npm start
-   
-   # Terminal 2 - Start frontend client
-   cd client
-   npm start
-   ```
-   
-   **Option 2: Start both servers from root (if concurrently is installed)**
    ```bash
    npm run dev
    ```
 
 5. **Access the application**
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+   - Backend API: http://localhost:5001
 
 ## API Endpoints
 
@@ -230,6 +219,39 @@ trip-planner-app/
 1. Update `REACT_APP_SERVER_URL` to your production API URL
 2. Build the application: `npm run build`
 3. Deploy to Netlify, Vercel, or your preferred hosting platform
+
+## Troubleshooting
+
+### AI Features Not Working
+- **Issue**: "AI itinerary generation failed"
+- **Solution**: 
+  1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+  2. Add it to `server/.env` as `GEMINI_API_KEY=your-key-here`
+  3. Restart the server
+  4. The app will fall back to basic itinerary generation if AI is unavailable
+
+### Location Autocomplete Not Working
+- **Issue**: No location suggestions appear
+- **Solution**:
+  1. Get a Google Places API key from [Google Cloud Console](https://console.cloud.google.com/)
+  2. Enable Places API in your Google Cloud project
+  3. Add it to `server/.env` as `GOOGLE_PLACES_API_KEY=your-key-here`
+  4. Restart the server
+  5. The app will fall back to manual text input if Places API is unavailable
+
+### Database Connection Issues
+- **Issue**: "MongoDB connection error"
+- **Solution**:
+  1. Ensure MongoDB is running locally, or
+  2. Use MongoDB Atlas (cloud) and update `MONGODB_URI` in `server/.env`
+  3. Check your network connection
+
+### Port Already in Use
+- **Issue**: "Port 5001 is already in use"
+- **Solution**:
+  1. Change the port in `server/.env`: `PORT=5002`
+  2. Update `client/.env`: `REACT_APP_SERVER_URL=http://localhost:5002`
+  3. Restart both servers
 
 ## Contributing
 

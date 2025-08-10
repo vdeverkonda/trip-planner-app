@@ -242,14 +242,21 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
 
       if (response.data.itinerary) {
         setItinerary(response.data.itinerary);
-        toast.success('🤖 AI itinerary generated successfully!');
+        
+        // Show appropriate message based on AI availability
+        if (response.data.aiAvailable) {
+          toast.success('🤖 AI itinerary generated successfully!');
+        } else {
+          toast.success('📋 Basic itinerary generated! (AI not configured)');
+        }
+        
         if (onUpdate) {
           onUpdate();
         }
       }
     } catch (error) {
-      console.error('AI generation error:', error);
-      toast.error(error.response?.data?.message || 'Failed to generate AI itinerary');
+      console.error('Itinerary generation error:', error);
+      toast.error(error.response?.data?.message || 'Failed to generate itinerary');
     } finally {
       setLoading(false);
     }
@@ -417,10 +424,10 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
                 {loading ? (
                   <>
                     <div className="spinner mr-2"></div>
-                    Generating AI Itinerary...
+                    Generating Itinerary...
                   </>
                 ) : (
-                  'Generate AI Itinerary'
+                  'Generate Smart Itinerary'
                 )}
               </button>
             </div>
