@@ -26,6 +26,7 @@ class AIItineraryService {
       const trip = tripData.trip || tripData;
       const userId = tripData.userId;
       const user = tripData.user;
+      const guidance = tripData.guidance || '';
       
       // Check if AI is available
       if (!this.isAvailable) {
@@ -33,7 +34,7 @@ class AIItineraryService {
         return this.generateFallbackItinerary(trip, userId, user);
       }
       
-      const prompt = this.buildPrompt(trip, user);
+      const prompt = this.buildPrompt(trip, user, guidance);
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
@@ -219,7 +220,7 @@ class AIItineraryService {
     return fallbackItinerary;
   }
 
-  buildPrompt(trip, user = null) {
+   buildPrompt(trip, user = null, guidance = '') {
     const startDate = new Date(trip.dates.startDate);
     const endDate = new Date(trip.dates.endDate);
     const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -274,6 +275,9 @@ SPECIFIC REQUIREMENTS:
 You are an expert travel planner and local guide with deep knowledge of ${trip.destination.name}. Create a highly personalized, detailed ${duration}-day itinerary that feels like it was crafted by a local expert who knows the destination intimately.
 
 ${tripContext}
+
+USER GUIDANCE (optional):
+${guidance || 'No additional guidance provided.'}
 
 EXPERT INSTRUCTIONS:
 1. **Research Deeply**: Use your knowledge of ${trip.destination.name} to create authentic, local experiences

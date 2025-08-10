@@ -141,4 +141,27 @@ const tripSchema = new mongoose.Schema({
 tripSchema.index({ 'startLocation.coordinates': '2dsphere' });
 tripSchema.index({ 'destination.coordinates': '2dsphere' });
 
+// Add route summary sub-schema (non-strict, optional)
+const routeSummarySchema = new mongoose.Schema({
+  distanceMeters: Number,
+  durationSecs: Number,
+  durationInTrafficSecs: Number,
+  avgSpeedKph: Number,
+  hasTolls: Boolean,
+  tollCostUSD: Number,
+  polyline: String,
+  trafficSummary: String,
+  googleMapsUrl: String,
+  avoidTolls: Boolean,
+  source: String,
+}, { _id: false });
+
+tripSchema.add({
+  routeSummary: {
+    withTolls: routeSummarySchema,
+    noTolls: routeSummarySchema,
+    lastComputedAt: Date,
+  }
+});
+
 module.exports = mongoose.model('Trip', tripSchema);

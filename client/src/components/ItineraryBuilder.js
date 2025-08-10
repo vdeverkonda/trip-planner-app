@@ -20,6 +20,7 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [aiGuidance, setAiGuidance] = useState('');
 
   // Initialize itinerary with trip days
   useEffect(() => {
@@ -231,7 +232,7 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
       const token = localStorage.getItem('token');
       const response = await axios.post(
         `http://localhost:5001/api/trips/${trip._id}/ai-itinerary`,
-        {},
+        { guidance: aiGuidance },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -287,6 +288,28 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
           <span className="text-sm text-gray-500">
             {itinerary.reduce((total, day) => total + day.activities.length, 0)} activities planned
           </span>
+        </div>
+      </div>
+
+      {/* AI Guidance & Regenerate */}
+      <div className="card">
+        <div className="card-header">
+          <h4 className="card-title">Smart itinerary guidance (optional)</h4>
+          <p className="card-description">Add preferences like times, cuisine, pace, accessibility, or must-see places. This guides the AI when generating or regenerating.</p>
+        </div>
+        <div className="card-content space-y-3">
+          <textarea
+            value={aiGuidance}
+            onChange={(e) => setAiGuidance(e.target.value)}
+            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Examples: Early mornings preferred, focus on street food and local markets, avoid long hikes, include a sunset viewpoint, budget-friendly restaurants, vegetarian options, museum-heavy day 1, nightlife on day 2."
+          />
+          <div className="flex items-center justify-end">
+            <button onClick={generateAIItinerary} disabled={loading} className="btn-primary">
+              {loading ? 'Regenerating…' : 'Regenerate with AI'}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ItineraryBuilder from '../components/ItineraryBuilder';
+import RouteSummary from '../components/RouteSummary';
 
 const TripDetail = () => {
   const { id } = useParams();
@@ -171,6 +172,13 @@ const TripDetail = () => {
           </div>
         </button>
       </div>
+
+      {/* Route Summary */}
+      <RouteSummary
+        tripId={trip._id}
+        startLocation={trip.startLocation}
+        destination={trip.destination}
+      />
     </div>
   );
 

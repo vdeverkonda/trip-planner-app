@@ -4,6 +4,7 @@ const { Budget } = require('../models/Budget');
 const auth = require('../middleware/auth');
 const placesService = require('../services/placesService');
 const aiItineraryService = require('../services/aiItineraryService');
+const routingService = require('../services/routingService');
 
 const router = express.Router();
 
@@ -70,6 +71,51 @@ router.post('/', auth, async (req, res) => {
   } catch (error) {
     console.error('Trip creation error:', error);
     res.status(500).json({ message: 'Server error creating trip' });
+  }
+});
+
+// Compute and/or fetch route summary for a trip
+router.get('/:id/route', auth, async (req, res) => {
+  try {
+    const avoidTolls = String(req.query.avoidTolls || 'false') === 'true';
+    const trip = await Trip.findById(req.params.id);
+
+    if (!trip) return res.status(404).json({ message: 'Trip not found' });
+
+    // Check membership
+    const isMember = trip.members.some(m => m.user.toString() === req.userId);
+    if (!isMember && trip.organizer.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // If we have cached result within last 24h for requested option, return it
+    const now = Date.now();
+    const cache = trip.routeSummary || {};
+    const cacheAgeMs = cache.lastComputedAt ? (now - new Date(cache.lastComputedAt).getTime()) : Infinity;
+    const fresh = cacheAgeMs < 24 * 60 * 60 * 1000;
+    const key = avoidTolls ? 'noTolls' : 'withTolls';
+    if (fresh && cache[key]) {
+      return res.json({ fromCache: true, ...cache[key] });
+    }
+
+    // Compute via routing service
+    const summary = await routingService.getRouteSummary({
+      startLocation: trip.startLocation,
+      destination: trip.destination,
+      avoidTolls
+    });
+    summary.avoidTolls = avoidTolls;
+
+    // Save to trip
+    trip.routeSummary = trip.routeSummary || {};
+    trip.routeSummary[key] = summary;
+    trip.routeSummary.lastComputedAt = new Date();
+    await trip.save();
+
+    res.json({ fromCache: false, ...summary });
+  } catch (error) {
+    console.error('Route compute error:', error);
+    res.status(500).json({ message: 'Failed to compute route', error: error.message });
   }
 });
 
@@ -365,10 +411,12 @@ router.post('/:id/ai-itinerary', auth, async (req, res) => {
     const isAIAvailable = aiItineraryService.isAIAvailable();
     
     // Generate itinerary (AI or fallback) with user context
+    const guidance = req.body?.guidance || '';
     const itinerary = await aiItineraryService.generateItinerary({
       trip,
       userId: req.userId,
-      user: user
+      user: user,
+      guidance
     });
 
     // Update trip with generated itinerary
