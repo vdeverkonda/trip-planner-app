@@ -1,6 +1,8 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -14,8 +16,6 @@ const tripRoutes = require('./routes/trips');
 const groupRoutes = require('./routes/groups');
 const budgetRoutes = require('./routes/budget');
 const placesRoutes = require('./routes/places');
-
-dotenv.config();
 
 const app = express();
 const server = createServer(app);

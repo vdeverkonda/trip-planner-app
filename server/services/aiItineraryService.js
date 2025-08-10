@@ -1,22 +1,25 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
 class AIItineraryService {
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    this.genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   }
 
-  async generateItinerary(trip) {
+  async generateItinerary(tripData) {
     try {
+      const trip = tripData.trip || tripData;
+      const userId = tripData.userId;
+      
       const prompt = this.buildPrompt(trip);
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
-      return this.parseItineraryResponse(text, trip);
+      return this.parseItineraryResponse(text, trip, userId);
     } catch (error) {
-      console.error('AI Itinerary Generation Error:', error);
-      throw new Error('Failed to generate AI itinerary');
+      console.error('AI Itinerary Generation Error:', JSON.stringify(error, null, 2));
+      throw new Error(`Failed to generate AI itinerary: ${error.message}`);
     }
   }
 
@@ -90,7 +93,7 @@ Only return the JSON object, no additional text or formatting.
 `;
   }
 
-  parseItineraryResponse(responseText, trip) {
+  parseItineraryResponse(responseText, trip, userId) {
     try {
       // Clean the response to extract JSON
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -111,7 +114,7 @@ Only return the JSON object, no additional text or formatting.
         date: this.calculateDayDate(trip.dates.startDate, index),
         activities: day.activities.map(activity => ({
           ...activity,
-          addedBy: trip.organizer._id || trip.organizer,
+          addedBy: userId,
           status: 'approved',
           place: {
             name: activity.place?.name || activity.name,

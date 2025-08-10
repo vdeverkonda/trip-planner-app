@@ -320,12 +320,12 @@ router.put('/:id/itinerary', auth, async (req, res) => {
   }
 });
 
-// Generate AI itinerary using Gemini 2.5
+// Generate AI itinerary
 router.post('/:id/ai-itinerary', auth, async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.id)
       .populate('organizer', 'name email')
-      .populate('members', 'name email');
+      .populate('members.user', 'name email');
 
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
@@ -333,24 +333,27 @@ router.post('/:id/ai-itinerary', auth, async (req, res) => {
 
     // Check if user is trip member or organizer
     const isMember = trip.members.some(member => 
-      member._id.toString() === req.user.userId
+      member.user._id.toString() === req.userId
     );
-    const isOrganizer = trip.organizer._id.toString() === req.user.userId;
+    const isOrganizer = trip.organizer._id.toString() === req.userId;
 
     if (!isMember && !isOrganizer) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Generate AI itinerary
-    const aiItinerary = await aiItineraryService.generateItinerary(trip);
-    
+    // Generate AI itinerary using Gemini 2.5
+    const itinerary = await aiItineraryService.generateItinerary({
+      trip,
+      userId: req.userId
+    });
+
     // Update trip with AI-generated itinerary
-    trip.itinerary = aiItinerary;
+    trip.itinerary = itinerary;
     await trip.save();
 
     res.json({
       message: 'AI itinerary generated successfully',
-      itinerary: aiItinerary
+      itinerary
     });
 
   } catch (error) {

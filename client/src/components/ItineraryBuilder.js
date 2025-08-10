@@ -191,16 +191,21 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
   const saveItinerary = async (newItinerary) => {
     setLoading(true);
     try {
-      await axios.put(`/api/trips/${trip._id}/itinerary`, {
-        itinerary: newItinerary
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:5001/api/trips/${trip._id}/itinerary`,
+        { itinerary: newItinerary },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       
       if (onUpdate) {
         onUpdate();
       }
-      
       toast.success('Itinerary updated successfully!');
     } catch (error) {
       console.error('Error saving itinerary:', error);
@@ -217,46 +222,7 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
   };
 
   const generateSampleItinerary = async () => {
-    setLoading(true);
-    try {
-      // Create a sample itinerary based on trip destination
-      const sampleActivities = [
-        {
-          place: {
-            name: `Explore ${trip.destination.name} City Center`,
-            address: trip.destination.address,
-            coordinates: trip.destination.coordinates
-          },
-          timeSlot: { startTime: '09:00', endTime: '12:00', duration: 180 },
-          estimatedCost: { amount: 0, currency: 'USD' },
-          notes: 'Walking tour of the main attractions',
-          status: 'approved'
-        },
-        {
-          place: {
-            name: 'Local Restaurant for Lunch',
-            address: '',
-            coordinates: { lat: 0, lng: 0 }
-          },
-          timeSlot: { startTime: '12:30', endTime: '14:00', duration: 90 },
-          estimatedCost: { amount: 25, currency: 'USD' },
-          notes: 'Try local cuisine',
-          status: 'approved'
-        }
-      ];
-
-      const newItinerary = [...itinerary];
-      if (newItinerary.length > 0) {
-        newItinerary[0].activities = sampleActivities;
-        setItinerary(newItinerary);
-        await saveItinerary(newItinerary);
-      }
-    } catch (error) {
-      console.error('Error generating sample itinerary:', error);
-      toast.error('Failed to generate sample itinerary');
-    } finally {
-      setLoading(false);
-    }
+    await generateAIItinerary();
   };
 
   const generateAIItinerary = async () => {
@@ -264,7 +230,7 @@ const ItineraryBuilder = ({ trip, onUpdate }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `http://localhost:5000/api/trips/${trip._id}/ai-itinerary`,
+        `http://localhost:5001/api/trips/${trip._id}/ai-itinerary`,
         {},
         {
           headers: {
